@@ -83,38 +83,30 @@ if st.checkbox("👀 Mostrar dataset completo"):
 if st.checkbox("📋 Mostrar tabla de predicciones (Ridge)"):
     st.dataframe(pd.DataFrame({"Real": y_test.values, "Predicho": y_pred}))
 
-# -----------------------------------------------
-# 🔹 Formulario personalizado - Modelo Ridge
-st.subheader("🔍 Predicción Personalizada (Modelo Ridge)")
-with st.form("formulario_ridge"):
-    aritmetica = st.number_input("Aritmética", 0.0, 100.0, key="arit_r")
-    algebra = st.number_input("Álgebra", 0.0, 100.0, key="alg_r")
-    geometria = st.number_input("Geometría Plana", 0.0, 100.0, key="geo_r")
-    trigonometria = st.number_input("Trigonometría", 0.0, 100.0, key="tri_r")
-    progresiones = st.number_input("Progresiones", 0.0, 100.0, key="pro_r")
-    diagnostico = st.number_input("Diagnóstico", 0.0, 100.0, key="diag_r")
-    submit_ridge = st.form_submit_button("Predecir con Ridge")
+# ------------------------------------------------
+# 🔍 Predicción Personalizada (Ridge + Fórmula 60/40)
+st.subheader("🔍 Predicción Personalizada (Ambos Modelos)")
+with st.form("formulario_unico"):
+    aritmetica = st.number_input("Aritmética", 0.0, 100.0)
+    algebra = st.number_input("Álgebra", 0.0, 100.0)
+    geometria = st.number_input("Geometría Plana", 0.0, 100.0)
+    trigonometria = st.number_input("Trigonometría", 0.0, 100.0)
+    progresiones = st.number_input("Progresiones", 0.0, 100.0)
+    diagnostico = st.number_input("Diagnóstico", 0.0, 100.0)
+    submit = st.form_submit_button("Predecir")
 
-    if submit_ridge:
+    if submit:
         entrada = [[aritmetica, algebra, geometria, trigonometria, progresiones, diagnostico]]
-        prediccion = modelo_ridge.predict(entrada)[0]
-        prediccion = np.clip(prediccion, 0, 100)
-        st.success(f"📈 Nota predicha en Cálculo (Ridge): {prediccion:.2f}")
 
-# -----------------------------------------------
-# 🔸 Fórmula Personalizada 60% Diagnóstico / 40% Otras Materias
-st.subheader("🔍 Predicción Personalizada (Fórmula 60/40)")
-with st.form("formulario_manual"):
-    aritmetica2 = st.number_input("Aritmética", 0.0, 100.0, key="arit_m")
-    algebra2 = st.number_input("Álgebra", 0.0, 100.0, key="alg_m")
-    geometria2 = st.number_input("Geometría Plana", 0.0, 100.0, key="geo_m")
-    trigonometria2 = st.number_input("Trigonometría", 0.0, 100.0, key="tri_m")
-    progresiones2 = st.number_input("Progresiones", 0.0, 100.0, key="pro_m")
-    diagnostico2 = st.number_input("Diagnóstico", 0.0, 100.0, key="diag_m")
-    submit_manual = st.form_submit_button("Predecir con Fórmula 60/40")
+        # ➤ Ridge
+        pred_ridge = modelo_ridge.predict(entrada)[0]
+        pred_ridge = np.clip(pred_ridge, 0, 100)
 
-    if submit_manual:
-        promedio_5 = np.mean([aritmetica2, algebra2, geometria2, trigonometria2, progresiones2])
-        nota_final = 0.6 * diagnostico2 + 0.4 * promedio_5
-        nota_final = np.clip(nota_final, 0, 100)
-        st.success(f"📈 Nota predicha en Cálculo (60/40): {nota_final:.2f}")
+        # ➤ Fórmula 60/40
+        promedio_5 = np.mean([aritmetica, algebra, geometria, trigonometria, progresiones])
+        pred_manual = 0.6 * diagnostico + 0.4 * promedio_5
+        pred_manual = np.clip(pred_manual, 0, 100)
+
+        # Mostrar resultados
+        st.success(f"📈 Nota predicha en Cálculo (Ridge): {pred_ridge:.2f}")
+        st.info(f"📊 Nota predicha con Fórmula 60/40: {pred_manual:.2f}")
