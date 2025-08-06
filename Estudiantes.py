@@ -3,14 +3,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Configuración de la página
 st.set_page_config(page_title="Predicción Nota Cálculo", layout="centered")
 st.title("📘 Predicción de Calificación en Cálculo")
-st.markdown("Basado en notas previas y diagnóstico inicial")
+st.markdown("Modelo Ridge basado en notas previas y diagnóstico")
 
 # Cargar dataset desde archivo local
 @st.cache_data
@@ -40,27 +40,26 @@ df = df.rename(columns={
     'Calificacion_Calculo': 'calculo'
 })
 
-# Seleccionar variables para el modelo
+# Seleccionar variables para el modelo (incluye diagnostico)
 X = df[['aritmetica', 'algebra', 'geometria_plana', 'trigonometria', 'progresiones', 'diagnostico']]
 y = df['calculo']
 
 # Dividir datos
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Entrenar modelo
-modelo = LinearRegression()
+# Entrenar modelo Ridge
+modelo = Ridge(alpha=1.0)
 modelo.fit(X_train, y_train)
 
-# Predicciones en conjunto de prueba
+# Predicciones
 y_pred = modelo.predict(X_test)
-# Limitar predicciones entre 0 y 100
-y_pred = np.clip(y_pred, 0, 100)
+y_pred = np.clip(y_pred, 0, 100)  # Limitar entre 0 y 100
 
 # Métricas del modelo
 mse = mean_squared_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
 
-st.subheader("📊 Métricas del Modelo")
+st.subheader("📊 Métricas del Modelo (Ridge)")
 col1, col2 = st.columns(2)
 col1.metric("MSE", f"{mse:.2f}")
 col2.metric("R²", f"{r2:.2f}")
@@ -104,8 +103,5 @@ with st.form("formulario_prediccion"):
     if submit:
         entrada = [[aritmetica, algebra, geometria, trigonometria, progresiones, diagnostico]]
         prediccion = modelo.predict(entrada)[0]
-        # Limitar predicción entre 0 y 100
         prediccion = np.clip(prediccion, 0, 100)
         st.success(f"📈 Nota predicha en Cálculo: {prediccion:.2f}")
-
-
