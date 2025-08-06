@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
@@ -49,7 +50,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # Entrenar modelo
 modelo = LinearRegression()
 modelo.fit(X_train, y_train)
+
+# Predicciones en conjunto de prueba
 y_pred = modelo.predict(X_test)
+# Limitar predicciones entre 0 y 100
+y_pred = np.clip(y_pred, 0, 100)
 
 # Métricas del modelo
 mse = mean_squared_error(y_test, y_pred)
@@ -99,4 +104,8 @@ with st.form("formulario_prediccion"):
     if submit:
         entrada = [[aritmetica, algebra, geometria, trigonometria, progresiones, diagnostico]]
         prediccion = modelo.predict(entrada)[0]
+        # Limitar predicción entre 0 y 100
+        prediccion = np.clip(prediccion, 0, 100)
         st.success(f"📈 Nota predicha en Cálculo: {prediccion:.2f}")
+
+
