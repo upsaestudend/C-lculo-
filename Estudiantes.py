@@ -10,7 +10,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 df = pd.read_csv("dataset_estudiantes_final.csv")
 df.columns = df.columns.str.strip()
 
-# 2. Renombrar columnas para simplicidad
+# 2. Renombrar columnas
 df = df.rename(columns={
     'Nota_Aritmetica': 'aritmetica',
     'Nota_Algebra': 'algebra',
@@ -72,9 +72,10 @@ plt.title("Distribución de Notas Finales")
 plt.tight_layout()
 plt.show()
 
-# 11. Matriz de Correlación
+# 11. Matriz de Correlación (solo numéricas)
+num_df = df.select_dtypes(include='number')
 plt.figure(figsize=(8, 6))
-sns.heatmap(df.corr(), annot=True, cmap="coolwarm")
+sns.heatmap(num_df.corr(), annot=True, cmap="coolwarm")
 plt.title("Matriz de Correlación")
 plt.tight_layout()
 plt.show()
@@ -89,3 +90,4 @@ plt.title("Comparación: Ridge vs Fórmula 60/40")
 plt.legend()
 plt.tight_layout()
 plt.show()
+
