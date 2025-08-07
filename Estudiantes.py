@@ -1,33 +1,16 @@
-import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
-# Configuración inicial
-st.set_page_config(page_title="Predicción Nota Cálculo", layout="centered")
-st.title("📘 Predicción de Calificación en Cálculo")
-st.markdown("Modelo Ridge + Fórmula Ponderada 60% Diagnóstico / 40% Otras Materias")
+# 1. Cargar dataset
+df = pd.read_csv("dataset_estudiantes_final.csv")
+df.columns = df.columns.str.strip()
 
-# Cargar dataset
-@st.cache_data
-def cargar_dataset():
-    try:
-        df = pd.read_csv("dataset_estudiantes_final.csv")
-        df.columns = df.columns.str.strip()
-        return df
-    except Exception as e:
-        st.error(f"❌ Error cargando dataset: {e}")
-        return None
-
-df = cargar_dataset()
-if df is None or df.empty:
-    st.stop()
-
-# Renombrar columnas
+# 2. Renombrar columnas para simplicidad
 df = df.rename(columns={
     'Nota_Aritmetica': 'aritmetica',
     'Nota_Algebra': 'algebra',
@@ -38,75 +21,71 @@ df = df.rename(columns={
     'Calificacion_Calculo': 'calculo'
 })
 
-# Separar variables
+# 3. Variables independientes y dependiente
 X = df[['aritmetica', 'algebra', 'geometria_plana', 'trigonometria', 'progresiones', 'diagnostico']]
 y = df['calculo']
 
-# Entrenamiento modelo Ridge
+# 4. Dividir en entrenamiento y prueba
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 5. Modelo Ridge
 modelo_ridge = Ridge(alpha=1.0)
 modelo_ridge.fit(X_train, y_train)
-y_pred = modelo_ridge.predict(X_test)
-y_pred = np.clip(y_pred, 0, 100)
 
-# Métricas
-mse = mean_squared_error(y_test, y_pred)
-r2 = r2_score(y_test, y_pred)
+# 6. Predicción Ridge
+y_pred_ridge = modelo_ridge.predict(X_test)
+y_pred_ridge = np.clip(y_pred_ridge, 0, 100)
 
-st.subheader("📊 Métricas del Modelo Ridge")
-col1, col2 = st.columns(2)
-col1.metric("MSE", f"{mse:.2f}")
-col2.metric("R²", f"{r2:.2f}")
+# 7. Predicción Fórmula 60/40
+promedios_5 = X_test[['aritmetica', 'algebra', 'geometria_plana', 'trigonometria', 'progresiones']].mean(axis=1)
+y_pred_manual = 0.6 * X_test['diagnostico'] + 0.4 * promedios_5
+y_pred_manual = np.clip(y_pred_manual, 0, 100)
 
-# Coeficientes
-st.subheader("📌 Coeficientes del Modelo Ridge")
-st.dataframe(pd.DataFrame({
-    "Variable": X.columns,
-    "Coeficiente": modelo_ridge.coef_
-}))
+# 8. Métricas Ridge
+mse_ridge = mean_squared_error(y_test, y_pred_ridge)
+r2_ridge = r2_score(y_test, y_pred_ridge)
 
-# Gráfico Real vs Predicho
-st.subheader("📈 Real vs Predicho (Ridge)")
-fig, ax = plt.subplots()
-sns.scatterplot(x=y_test, y=y_pred, ax=ax)
-sns.lineplot(x=y_test, y=y_test, color='red', label='Ideal', ax=ax)
-ax.set_xlabel("Valor Real")
-ax.set_ylabel("Valor Predicho")
-ax.legend()
-st.pyplot(fig)
+print("📊 Métricas Modelo Ridge")
+print(f"Error cuadrático medio (MSE): {mse_ridge:.2f}")
+print(f"Coeficiente de determinación (R²): {r2_ridge:.2f}")
+print("\n📌 Coeficientes Ridge:")
+for var, coef in zip(X.columns, modelo_ridge.coef_):
+    print(f"{var}: {coef:.4f}")
 
-# Mostrar dataset completo (opcional)
-if st.checkbox("👀 Mostrar dataset completo"):
-    st.dataframe(df)
+# 9. Gráfico Real vs Predicho (Ridge)
+plt.figure(figsize=(6, 4))
+sns.scatterplot(x=y_test, y=y_pred_ridge, label="Predicho Ridge")
+sns.lineplot(x=y_test, y=y_test, color='red', label='Ideal')
+plt.xlabel("Nota Real")
+plt.ylabel("Nota Predicha")
+plt.title("Real vs Predicho (Ridge)")
+plt.legend()
+plt.tight_layout()
+plt.show()
 
-# Mostrar tabla de predicciones (opcional)
-if st.checkbox("📋 Mostrar tabla de predicciones (Ridge)"):
-    st.dataframe(pd.DataFrame({"Real": y_test.values, "Predicho": y_pred}))
+# 10. Distribución de Notas Reales
+plt.figure(figsize=(6, 4))
+sns.histplot(df['calculo'], bins=10, kde=True)
+plt.xlabel("Nota Final (Calculo)")
+plt.ylabel("Frecuencia")
+plt.title("Distribución de Notas Finales")
+plt.tight_layout()
+plt.show()
 
-# ------------------------------------------------
-# 🔍 Predicción Personalizada (Ridge + Fórmula 60/40)
-st.subheader("🔍 Predicción Personalizada (Ambos Modelos)")
-with st.form("formulario_unico"):
-    aritmetica = st.number_input("Aritmética", 0.0, 100.0)
-    algebra = st.number_input("Álgebra", 0.0, 100.0)
-    geometria = st.number_input("Geometría Plana", 0.0, 100.0)
-    trigonometria = st.number_input("Trigonometría", 0.0, 100.0)
-    progresiones = st.number_input("Progresiones", 0.0, 100.0)
-    diagnostico = st.number_input("Diagnóstico", 0.0, 100.0)
-    submit = st.form_submit_button("Predecir")
+# 11. Matriz de Correlación
+plt.figure(figsize=(8, 6))
+sns.heatmap(df.corr(), annot=True, cmap="coolwarm")
+plt.title("Matriz de Correlación")
+plt.tight_layout()
+plt.show()
 
-    if submit:
-        entrada = [[aritmetica, algebra, geometria, trigonometria, progresiones, diagnostico]]
-
-        # ➤ Ridge
-        pred_ridge = modelo_ridge.predict(entrada)[0]
-        pred_ridge = np.clip(pred_ridge, 0, 100)
-
-        # ➤ Fórmula 60/40
-        promedio_5 = np.mean([aritmetica, algebra, geometria, trigonometria, progresiones])
-        pred_manual = 0.6 * diagnostico + 0.4 * promedio_5
-        pred_manual = np.clip(pred_manual, 0, 100)
-
-        # Mostrar resultados
-        st.success(f"📈 Nota predicha en Cálculo (Ridge): {pred_ridge:.2f}")
-        st.info(f"📊 Nota predicha con Fórmula 60/40: {pred_manual:.2f}")
+# 12. Comparación Ridge vs 60/40
+plt.figure(figsize=(6, 4))
+sns.scatterplot(x=y_test, y=y_pred_ridge, label="Ridge")
+sns.scatterplot(x=y_test, y=y_pred_manual, label="Fórmula 60/40")
+plt.xlabel("Nota Real")
+plt.ylabel("Nota Predicha")
+plt.title("Comparación: Ridge vs Fórmula 60/40")
+plt.legend()
+plt.tight_layout()
+plt.show()
